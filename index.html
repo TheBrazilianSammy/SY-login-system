@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roblox Style | Conta</title>
+  
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Background -->
+  <div class="bg-overlay"></div>
+  
+  <!-- ==================== TELA DE LOGIN / CADASTRO ==================== -->
+  <main class="login-wrapper" id="authSection">
+    <div class="login-card">
+      
+      <div class="logo-area">
+        <div class="logo-icon logo-hat">
+          <img src="assets/icons/logo-hat.png" alt="Logo" class="logo-img">
+        </div>
+        <h1 id="formTitle">Entrar</h1>
+        <p id="formSubtitle">Bem-vindo de volta à experiência</p>
+      </div>
+
+      <!-- Login -->
+      <form id="loginForm" class="auth-form active" autocomplete="on">
+        <div class="input-group">
+          <label for="username">E-mail</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="username" name="username" placeholder="Digite seu e-mail" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="password">Senha</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="password" name="password" placeholder="Digite sua senha" required autocomplete="current-password">
+            <button type="button" class="toggle-password" data-target="password" aria-label="Mostrar senha">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox-container">
+            <input type="checkbox" id="remember" name="remember">
+            <span class="checkmark"></span>
+            Lembrar de mim
+          </label>
+          <a href="#" class="forgot-link" id="forgotPassword">Esqueceu a senha?</a>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <span>Entrar</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <!-- Cadastro -->
+      <form id="registerForm" class="auth-form" autocomplete="on">
+        <div class="input-group">
+          <label for="regUsername">Nome de Usuário</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-user input-icon"></i>
+            <input type="text" id="regUsername" name="regUsername" placeholder="Escolha um nome de usuário" required autocomplete="username" maxlength="32">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="regEmail">E-mail</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="regEmail" name="regEmail" placeholder="Digite seu e-mail" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="regPassword">Senha</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="regPassword" name="regPassword" placeholder="Crie uma senha (mín. 6 caracteres)" required autocomplete="new-password" minlength="6">
+            <button type="button" class="toggle-password" data-target="regPassword" aria-label="Mostrar senha">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="regPasswordConfirm">Confirmar Senha</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="regPasswordConfirm" name="regPasswordConfirm" placeholder="Confirme sua senha" required autocomplete="new-password" minlength="6">
+            <button type="button" class="toggle-password" data-target="regPasswordConfirm" aria-label="Mostrar senha">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox-container">
+            <input type="checkbox" id="terms" name="terms" required>
+            <span class="checkmark"></span>
+            Aceito os <a href="#" class="terms-link" id="openTerms">Termos de Uso</a>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <span>Criar Conta</span>
+          <i class="fa-solid fa-user-plus"></i>
+        </button>
+      </form>
+
+      <div class="divider">
+        <span>ou entre com</span>
+      </div>
+
+      <div class="social-grid">
+        <button type="button" class="social-btn google" id="loginGoogle" title="Google"><i class="fa-brands fa-google"></i></button>
+        <button type="button" class="social-btn github" id="loginGithub" title="GitHub"><i class="fa-brands fa-github"></i></button>
+        <button type="button" class="social-btn microsoft" id="loginMicrosoft" title="Microsoft"><i class="fa-brands fa-microsoft"></i></button>
+        <button type="button" class="social-btn facebook" id="loginFacebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button>
+        <button type="button" class="social-btn discord" title="Discord (em breve)" disabled style="opacity:0.4;cursor:not-allowed"><i class="fa-brands fa-discord"></i></button>
+        <button type="button" class="social-btn tiktok" title="TikTok (em breve)" disabled style="opacity:0.4;cursor:not-allowed"><i class="fa-brands fa-tiktok"></i></button>
+      </div>
+
+      <p class="signup-text" id="switchText">
+        Não tem uma conta? <a href="#" id="switchToRegister">Cadastre-se</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- ==================== TELA PÓS-LOGIN (PERFIL) ==================== -->
+  <main class="profile-wrapper hidden" id="profileSection">
+    <div class="profile-card">
+      
+      <div class="profile-header">
+        <div class="profile-avatar-area">
+          <div class="avatar-container" id="avatarContainer">
+            <img id="profileAvatar" src="assets/icons/logo-hooded.png" alt="Foto de perfil" class="avatar-img">
+            <div class="avatar-placeholder hidden" id="avatarPlaceholder">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <button type="button" class="avatar-edit-btn" id="changeAvatarBtn" title="Mudar foto">
+              <i class="fa-solid fa-camera"></i>
+            </button>
+            <input type="file" id="avatarInput" accept="image/*" hidden>
+          </div>
+          
+          <div class="profile-name-area">
+            <div class="name-display" id="nameDisplay">
+              <h2 id="displayName">Jogador</h2>
+              <button type="button" class="edit-name-btn" id="editNameBtn" title="Editar nome">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            </div>
+            <div class="name-edit hidden" id="nameEdit">
+              <input type="text" id="nameInput" maxlength="32" placeholder="Novo nome">
+              <div class="name-edit-actions">
+                <button type="button" class="btn-save-name" id="saveNameBtn"><i class="fa-solid fa-check"></i></button>
+                <button type="button" class="btn-cancel-name" id="cancelNameBtn"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+            <p class="profile-email" id="profileEmail">usuario@email.com</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn-logout" id="logoutBtn">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Sair
+        </button>
+      </div>
+
+      <div class="profile-sections">
+        
+        <section class="profile-section">
+          <h3><i class="fa-solid fa-user-gear"></i> Conta</h3>
+          <div class="section-content">
+            <div class="info-row">
+              <span class="info-label">Nome de usuário</span>
+              <span class="info-value" id="infoUsername">jogador123</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">E-mail</span>
+              <span class="info-value" id="infoEmail">usuario@email.com</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Membro desde</span>
+              <span class="info-value" id="infoMemberSince">—</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3>
+            <i class="fa-solid fa-link"></i> 
+            Contas Vinculadas
+            <span class="badge-soon">Em breve</span>
+          </h3>
+          <p class="section-desc">Junte várias contas em uma só. Faça login com Google, Discord e outros serviços na mesma conta.</p>
+          
+          <div class="linked-accounts-grid">
+            <div class="linked-account" data-provider="google">
+              <div class="linked-icon google"><i class="fa-brands fa-google"></i></div>
+              <div class="linked-info">
+                <span class="linked-name">Google</span>
+                <span class="linked-status" id="googleStatus">Não vinculado</span>
+              </div>
+              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+            </div>
+
+            <div class="linked-account" data-provider="discord">
+              <div class="linked-icon discord"><i class="fa-brands fa-discord"></i></div>
+              <div class="linked-info">
+                <span class="linked-name">Discord</span>
+                <span class="linked-status">Não vinculado</span>
+              </div>
+              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+            </div>
+
+            <div class="linked-account" data-provider="github">
+              <div class="linked-icon github"><i class="fa-brands fa-github"></i></div>
+              <div class="linked-info">
+                <span class="linked-name">GitHub</span>
+                <span class="linked-status">Não vinculado</span>
+              </div>
+              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+            </div>
+
+            <div class="linked-account" data-provider="microsoft">
+              <div class="linked-icon microsoft"><i class="fa-brands fa-microsoft"></i></div>
+              <div class="linked-info">
+                <span class="linked-name">Microsoft</span>
+                <span class="linked-status">Não vinculado</span>
+              </div>
+              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3><i class="fa-solid fa-sliders"></i> Preferências</h3>
+          <div class="section-content">
+            <label class="pref-row">
+              <span>Notificações</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="prefNotifications" checked>
+                <span class="slider"></span>
+              </div>
+            </label>
+            <label class="pref-row">
+              <span>Modo privado</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="prefPrivate">
+                <span class="slider"></span>
+              </div>
+            </label>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== MODAL TERMOS DE USO ==================== -->
+  <div id="termsModal" class="terms-modal hidden">
+    <div class="terms-modal-backdrop" id="termsBackdrop"></div>
+    <div class="terms-modal-content">
+      <div class="terms-modal-header">
+        <h2>Termos de Uso</h2>
+        <button type="button" class="terms-close" id="closeTerms" aria-label="Fechar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="terms-modal-body">
+        <p><strong>1. Aceitação dos Termos</strong><br>
+        Ao criar uma conta e utilizar este serviço, você concorda com estes Termos de Uso.</p>
+
+        <p><strong>2. Conta do Usuário</strong><br>
+        Você é responsável por manter a confidencialidade da sua senha e por todas as atividades realizadas na sua conta. Informe-nos imediatamente sobre qualquer uso não autorizado.</p>
+
+        <p><strong>3. Conduta</strong><br>
+        É proibido usar o serviço para atividades ilegais, ofensivas, fraudulentas ou que violem direitos de terceiros. Reservamo-nos o direito de suspender ou encerrar contas que descumpram estas regras.</p>
+
+        <p><strong>4. Privacidade e Dados</strong><br>
+        Tratamos seus dados de acordo com nossa política de privacidade. O modo privado oculta seu e-mail na interface, mas não altera as obrigações legais de armazenamento quando necessário.</p>
+
+        <p><strong>5. Conteúdo e Propriedade</strong><br>
+        O conteúdo gerado ou enviado por você permanece seu. Ao publicar, você nos concede licença limitada para exibir e operar o serviço.</p>
+
+        <p><strong>6. Limitação de Responsabilidade</strong><br>
+        O serviço é oferecido “como está”. Não nos responsabilizamos por danos indiretos, perda de dados ou interrupções, na medida permitida por lei.</p>
+
+        <p><strong>7. Alterações</strong><br>
+        Podemos atualizar estes Termos periodicamente. O uso contínuo após alterações constitui aceitação das novas condições.</p>
+
+        <p><strong>8. Contato</strong><br>
+        Em caso de dúvidas sobre estes Termos, entre em contato pelo suporte do projeto.</p>
+
+        <p style="margin-top: 16px; opacity: 0.7; font-size: 0.85rem;">Última atualização: Outubro 2026</p>
+      </div>
+      <div class="terms-modal-footer">
+        <button type="button" class="btn-primary" id="acceptTermsBtn" style="width: auto; padding: 12px 28px;">
+          Entendi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .terms-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .terms-modal.hidden { display: none !important; }
+    .terms-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+    }
+    .terms-modal-content {
+      position: relative;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 20px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      animation: termsIn 0.3s ease;
+    }
+    @keyframes termsIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .terms-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    .terms-modal-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .terms-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      transition: 0.2s;
+    }
+    .terms-close:hover {
+      color: #fff;
+      background: rgba(239, 68, 68, 0.2);
+    }
+    .terms-modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+    .terms-modal-body p { margin-bottom: 14px; }
+    .terms-modal-body strong { color: #e2e8f0; }
+    .terms-modal-footer {
+      padding: 16px 24px 22px;
+      border-top: 1px solid rgba(59, 130, 246, 0.2);
+      display: flex;
+      justify-content: flex-end;
+    }
+  </style>
+
+  <script>
+    // Modal Termos de Uso
+    (function () {
+      const modal = document.getElementById('termsModal');
+      const openBtn = document.getElementById('openTerms');
+      const closeBtn = document.getElementById('closeTerms');
+      const backdrop = document.getElementById('termsBackdrop');
+      const acceptBtn = document.getElementById('acceptTermsBtn');
+      const termsCheckbox = document.getElementById('terms');
+
+      function openModal(e) {
+        if (e) e.preventDefault();
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeModal() {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+
+      if (openBtn) openBtn.addEventListener('click', openModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (backdrop) backdrop.addEventListener('click', closeModal);
+      if (acceptBtn) {
+        acceptBtn.addEventListener('click', () => {
+          if (termsCheckbox) termsCheckbox.checked = true;
+          closeModal();
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+      });
+    })();
+  </script>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
