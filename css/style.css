@@ -973,3 +973,116 @@ body {
 .login-card {
   animation: fadeInUp 0.6s ease-out;
 }
+
+/* =========================
+   EDITOR DE FOTO
+========================= */
+.photo-editor-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.photo-editor-modal.hidden { display: none !important; }
+.photo-editor-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+}
+.photo-editor-content {
+  position: relative;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  animation: termsIn 0.3s ease;
+}
+.photo-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+.photo-editor-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.photo-editor-body {
+  padding: 20px;
+}
+.photo-preview-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+#photoCanvas {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 3px solid var(--blue-electric);
+  box-shadow: 0 8px 24px rgba(0, 162, 255, 0.35);
+  background: #0a0e17;
+}
+.photo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.photo-control-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.photo-control-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--blue-electric);
+  cursor: pointer;
+}
+.photo-control-value {
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.photo-editor-footer {
+  padding: 14px 20px 20px;
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn-cancel-photo {
+  padding: 12px 18px;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-cancel-photo:hover {
+  background: rgba(148, 163, 184, 0.2);
+  color: #fff;
+}
+@media (max-width: 420px) {
+  #photoCanvas { width: 220px; height: 220px; }
+  .photo-control-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .photo-control-value { text-align: left; }
+}
