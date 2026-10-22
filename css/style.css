@@ -1369,3 +1369,55 @@ body {
   .admin-stats { grid-template-columns: repeat(2, 1fr); }
   .admin-action-buttons { grid-template-columns: 1fr; }
 }
+
+/* =========================
+   RESTRIÇÃO (BAN / CASTIGO)
+========================= */
+.restriction-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(127, 29, 29, 0.35);
+}
+.restriction-banner.hidden { display: none !important; }
+.restriction-banner.restriction-timeout {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(120, 53, 15, 0.35);
+}
+.restriction-banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.25);
+  color: #fecaca;
+  flex-shrink: 0;
+}
+.restriction-banner.restriction-timeout .restriction-banner-icon {
+  color: #fcd34d;
+}
+.restriction-banner-text strong {
+  display: block;
+  color: #fef2f2;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+.restriction-banner-text p {
+  color: #fecaca;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0;
+}
+.restriction-banner.restriction-timeout .restriction-banner-text p {
+  color: #fde68a;
+}
+.profile-locked .linked-accounts-grid,
+.profile-locked .pref-row {
+  opacity: 0.55;
+}
