@@ -40,6 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = user;
       await loadUserProfile(user);
 
+      // Bloqueia banidos / em castigo (admin nunca é bloqueado)
+      if (await enforceModeration(user, userProfile)) {
+        return;
+      }
+
       // Integração com outros sites: ?redirect=https://outrosite.com/callback
       const redirected = await tryExternalRedirect(user);
       if (redirected) return;
@@ -49,8 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = null;
       userProfile = null;
       showAuth();
+      document.getElementById('adminGate')?.classList.add('hidden');
+      closeAdminPanel?.();
     }
   });
+
 
   /**
    * Se a URL tiver ?redirect=, devolve o usuário ao site externo com token.
@@ -70,7 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      showToast('Login ok! Redirecionando...', 'success');
+      if (typeof showToast === 'function') {
+        showToast('Login ok! Redirecionando...', 'success');
+      }
       const token = await user.getIdToken(true);
       target.searchParams.set('token', token);
       target.searchParams.set('uid', user.uid);
@@ -81,13 +91,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (photo && String(photo).startsWith('http')) {
         target.searchParams.set('photo', photo);
       }
+      const finalUrl = target.toString();
+      console.log('[SY Auth] Redirecionando para site externo...');
       setTimeout(() => {
-        window.location.href = target.toString();
-      }, 600);
+        window.location.replace(finalUrl);
+      }, 400);
       return true;
     } catch (err) {
       console.error('Redirect externo falhou:', err);
-      showToast('Não foi possível redirecionar ao site externo', 'error');
+      if (typeof showToast === 'function') {
+        showToast('Não foi possível redirecionar ao site externo', 'error');
+      }
       return false;
     }
   }
@@ -183,6 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (googleStatus) {
       googleStatus.textContent = isGoogle ? 'Vinculado' : 'Não vinculado';
     }
+
+    // Botão admin (só e-mail autorizado)
+    updateAdminGate();
   }
 
   // =========================
@@ -718,6 +735,319 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================
+  // PAINEL ADMIN
+  // =========================
+  const ADMIN_EMAIL = 'adm.xxl.do.yt@gmail.com';
+  let adminUsersCache = [];
+  let adminSelectedUid = null;
+
+  function isAdminUser() {
+    const email = (currentUser?.email || userProfile?.email || '').toLowerCase().trim();
+    return email === ADMIN_EMAIL.toLowerCase();
+  }
+
+  function isUserPunished(profile) {
+    if (!profile) return { blocked: false };
+    if (profile.banned === true) {
+      return { blocked: true, type: 'ban', reason: profile.bannedReason || 'Conta banida' };
+    }
+    if (profile.timeoutUntil) {
+      let until = profile.timeoutUntil;
+      if (until.toDate) until = until.toDate();
+      else until = new Date(until);
+      if (until > new Date()) {
+        return {
+          blocked: true,
+          type: 'timeout',
+          reason: profile.timeoutReason || 'Em castigo',
+          until
+        };
+      }
+    }
+    return { blocked: false };
+  }
+
+  async function enforceModeration(user, profile) {
+    // Admin nunca é bloqueado
+    if ((user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) return false;
+
+    const status = isUserPunished(profile);
+    if (!status.blocked) return false;
+
+    await auth.signOut();
+    if (status.type === 'ban') {
+      showToast(`Conta banida. ${status.reason}`, 'error');
+    } else {
+      const when = status.until ? status.until.toLocaleString('pt-BR') : 'em breve';
+      showToast(`Você está de castigo até ${when}. ${status.reason}`, 'error');
+    }
+    return true;
+  }
+
+  function updateAdminGate() {
+    const gate = document.getElementById('adminGate');
+    if (!gate) return;
+    if (isAdminUser()) gate.classList.remove('hidden');
+    else gate.classList.add('hidden');
+  }
+
+  function openAdminPanel() {
+    if (!isAdminUser()) {
+      showToast('Acesso negado', 'error');
+      return;
+    }
+    document.getElementById('adminModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    loadAdminUsers();
+  }
+
+  function closeAdminPanel() {
+    document.getElementById('adminModal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  function openAdminAction(uid) {
+    const u = adminUsersCache.find(x => x.id === uid);
+    if (!u) return;
+    adminSelectedUid = uid;
+    document.getElementById('adminActionTitle').textContent = u.displayName || u.username || 'Usuário';
+    document.getElementById('adminActionSubtitle').textContent = u.email || uid;
+    document.getElementById('adminTagsInput').value = (u.tags || []).join(', ');
+    document.getElementById('adminNotesInput').value = u.adminNotes || '';
+    document.getElementById('adminReasonInput').value = u.bannedReason || u.timeoutReason || '';
+    const timeoutInput = document.getElementById('adminTimeoutInput');
+    if (u.timeoutUntil) {
+      let d = u.timeoutUntil.toDate ? u.timeoutUntil.toDate() : new Date(u.timeoutUntil);
+      if (!isNaN(d.getTime()) && d > new Date()) {
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        timeoutInput.value = local.toISOString().slice(0, 16);
+      } else {
+        timeoutInput.value = '';
+      }
+    } else {
+      timeoutInput.value = '';
+    }
+    document.getElementById('adminActionModal').classList.remove('hidden');
+  }
+
+  function closeAdminAction() {
+    document.getElementById('adminActionModal').classList.add('hidden');
+    adminSelectedUid = null;
+  }
+
+  async function loadAdminUsers() {
+    const list = document.getElementById('adminUserList');
+    list.innerHTML = '<p class="admin-empty">Carregando usuários...</p>';
+    try {
+      const snap = await db.collection('users').orderBy('email').limit(100).get();
+      adminUsersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAdminUsers();
+    } catch (err) {
+      console.warn('orderBy email falhou, tentando sem ordenação', err);
+      try {
+        const snap = await db.collection('users').limit(100).get();
+        adminUsersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAdminUsers();
+      } catch (err2) {
+        console.error(err2);
+        list.innerHTML = '<p class="admin-empty">Erro ao carregar. Verifique as regras do Firestore (leitura da coleção users para admin).</p>';
+        showToast('Erro ao listar usuários', 'error');
+      }
+    }
+  }
+
+  function renderAdminUsers() {
+    const q = (document.getElementById('adminSearch').value || '').toLowerCase().trim();
+    let users = adminUsersCache;
+    if (q) {
+      users = users.filter(u => {
+        const tags = (u.tags || []).join(' ').toLowerCase();
+        return (
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.displayName || '').toLowerCase().includes(q) ||
+          (u.username || '').toLowerCase().includes(q) ||
+          tags.includes(q) ||
+          u.id.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    const now = new Date();
+    let banned = 0, timeout = 0, withTags = 0;
+    adminUsersCache.forEach(u => {
+      if (u.banned) banned++;
+      if (u.timeoutUntil) {
+        const d = u.timeoutUntil.toDate ? u.timeoutUntil.toDate() : new Date(u.timeoutUntil);
+        if (d > now) timeout++;
+      }
+      if (u.tags && u.tags.length) withTags++;
+    });
+    document.getElementById('statTotal').textContent = adminUsersCache.length;
+    document.getElementById('statBanned').textContent = banned;
+    document.getElementById('statTimeout').textContent = timeout;
+    document.getElementById('statTags').textContent = withTags;
+
+    const list = document.getElementById('adminUserList');
+    if (!users.length) {
+      list.innerHTML = '<p class="admin-empty">Nenhum usuário encontrado.</p>';
+      return;
+    }
+
+    list.innerHTML = users.map(u => {
+      const isAdm = (u.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const badges = [];
+      if (isAdm) badges.push('<span class="admin-badge admin">admin</span>');
+      if (u.banned) badges.push('<span class="admin-badge ban">banido</span>');
+      if (u.timeoutUntil) {
+        const d = u.timeoutUntil.toDate ? u.timeoutUntil.toDate() : new Date(u.timeoutUntil);
+        if (d > now) badges.push('<span class="admin-badge timeout">castigo</span>');
+      }
+      (u.tags || []).slice(0, 4).forEach(t => {
+        badges.push(`<span class="admin-badge tag">${escapeHtml(t)}</span>`);
+      });
+      const photo = u.photoURL && String(u.photoURL).startsWith('http')
+        ? `<img src="${escapeAttr(u.photoURL)}" alt="">`
+        : `<div class="admin-user-avatar">${escapeHtml((u.displayName || u.email || '?')[0].toUpperCase())}</div>`;
+      return `
+        <div class="admin-user-card" data-uid="${escapeAttr(u.id)}">
+          ${photo}
+          <div class="admin-user-info">
+            <strong>${escapeHtml(u.displayName || u.username || 'Sem nome')}</strong>
+            <span>${escapeHtml(u.email || u.id)}</span>
+            <div class="admin-badges">${badges.join('')}</div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color:#64748b"></i>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.admin-user-card').forEach(card => {
+      card.addEventListener('click', () => openAdminAction(card.getAttribute('data-uid')));
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function escapeAttr(s) {
+    return String(s || '').replace(/"/g, '&quot;');
+  }
+
+  async function adminUpdateUser(uid, data) {
+    await db.collection('users').doc(uid).set(data, { merge: true });
+    const idx = adminUsersCache.findIndex(u => u.id === uid);
+    if (idx >= 0) adminUsersCache[idx] = { ...adminUsersCache[idx], ...data };
+    renderAdminUsers();
+  }
+
+  document.getElementById('openAdminPanel')?.addEventListener('click', openAdminPanel);
+  document.getElementById('closeAdminPanel')?.addEventListener('click', closeAdminPanel);
+  document.getElementById('adminBackdrop')?.addEventListener('click', closeAdminPanel);
+  document.getElementById('closeAdminAction')?.addEventListener('click', closeAdminAction);
+  document.getElementById('adminActionBackdrop')?.addEventListener('click', closeAdminAction);
+  document.getElementById('adminRefresh')?.addEventListener('click', loadAdminUsers);
+  document.getElementById('adminSearch')?.addEventListener('input', renderAdminUsers);
+
+  document.getElementById('adminSaveMeta')?.addEventListener('click', async () => {
+    if (!adminSelectedUid || !isAdminUser()) return;
+    const tags = (document.getElementById('adminTagsInput').value || '')
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+    const adminNotes = document.getElementById('adminNotesInput').value.trim();
+    try {
+      await adminUpdateUser(adminSelectedUid, { tags, adminNotes });
+      showToast('Tags e nota salvas', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao salvar', 'error');
+    }
+  });
+
+  document.getElementById('adminApplyTimeout')?.addEventListener('click', async () => {
+    if (!adminSelectedUid || !isAdminUser()) return;
+    const raw = document.getElementById('adminTimeoutInput').value;
+    if (!raw) {
+      showToast('Escolha a data/hora do castigo', 'error');
+      return;
+    }
+    const until = new Date(raw);
+    if (isNaN(until.getTime()) || until <= new Date()) {
+      showToast('A data do castigo precisa ser no futuro', 'error');
+      return;
+    }
+    const reason = document.getElementById('adminReasonInput').value.trim() || 'Castigo aplicado pelo admin';
+    try {
+      await adminUpdateUser(adminSelectedUid, {
+        timeoutUntil: firebase.firestore.Timestamp.fromDate(until),
+        timeoutReason: reason
+      });
+      showToast('Castigo aplicado', 'success');
+      closeAdminAction();
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao aplicar castigo', 'error');
+    }
+  });
+
+  document.getElementById('adminClearTimeout')?.addEventListener('click', async () => {
+    if (!adminSelectedUid || !isAdminUser()) return;
+    try {
+      await adminUpdateUser(adminSelectedUid, {
+        timeoutUntil: null,
+        timeoutReason: null
+      });
+      showToast('Castigo removido', 'success');
+      closeAdminAction();
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao remover castigo', 'error');
+    }
+  });
+
+  document.getElementById('adminBanUser')?.addEventListener('click', async () => {
+    if (!adminSelectedUid || !isAdminUser()) return;
+    const u = adminUsersCache.find(x => x.id === adminSelectedUid);
+    if (u && (u.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      showToast('Você não pode banir o admin', 'error');
+      return;
+    }
+    const reason = document.getElementById('adminReasonInput').value.trim() || 'Banido pelo administrador';
+    if (!confirm('Banir este usuário permanentemente?')) return;
+    try {
+      await adminUpdateUser(adminSelectedUid, {
+        banned: true,
+        bannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        bannedReason: reason
+      });
+      showToast('Usuário banido', 'success');
+      closeAdminAction();
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao banir', 'error');
+    }
+  });
+
+  document.getElementById('adminUnbanUser')?.addEventListener('click', async () => {
+    if (!adminSelectedUid || !isAdminUser()) return;
+    try {
+      await adminUpdateUser(adminSelectedUid, {
+        banned: false,
+        bannedReason: null,
+        bannedAt: null
+      });
+      showToast('Usuário desbanido', 'success');
+      closeAdminAction();
+    } catch (e) {
+      console.error(e);
+      showToast('Erro ao desbanir', 'error');
+    }
+  });
+
+  // =========================
   // LOGOUT
   // =========================
   document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -732,6 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Erro ao sair', 'error');
     }
   });
+
 
   // =========================
   // TOAST
