@@ -40,14 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = user;
       await loadUserProfile(user);
 
-      // Bloqueia banidos / em castigo (admin nunca é bloqueado)
-      if (await enforceModeration(user, userProfile)) {
-        return;
-      }
+      // Ban/castigo: ainda entra no perfil, mas com conta restrita
+      applyAccountRestrictions(user, userProfile);
 
       // Integração com outros sites: ?redirect=https://outrosite.com/callback
-      const redirected = await tryExternalRedirect(user);
-      if (redirected) return;
+      // (banidos/castigo não geram token para sites externos)
+      const punishment = isUserPunished(userProfile);
+      const isAdm = (user.email || '').toLowerCase() === 'adm.xxl.do.yt@gmail.com';
+      if (!(punishment.blocked && !isAdm)) {
+        const redirected = await tryExternalRedirect(user);
+        if (redirected) return;
+      }
 
       showProfile();
     } else {
@@ -200,6 +203,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botão admin (só e-mail autorizado)
     updateAdminGate();
+
+    // Reaplica restrições de ban/castigo na UI
+    if (currentUser) applyAccountRestrictions(currentUser, userProfile);
   }
 
   // =========================
@@ -432,6 +438,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelNameBtn = document.getElementById('cancelNameBtn');
 
   editNameBtn.addEventListener('click', () => {
+    if (accountIsLocked()) {
+      showToast('Conta restrita: você não pode alterar o nome', 'error');
+      return;
+    }
     nameInput.value = userProfile?.displayName || '';
     nameDisplay.classList.add('hidden');
     nameEdit.classList.remove('hidden');
@@ -601,6 +611,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Faça login para mudar a foto', 'error');
       return;
     }
+    if (accountIsLocked()) {
+      showToast('Conta restrita: você não pode mudar a foto', 'error');
+      return;
+    }
     document.getElementById('avatarInput').click();
   });
 
@@ -709,6 +723,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // PREFERÊNCIAS
   // =========================
   document.getElementById('prefNotifications').addEventListener('change', async (e) => {
+    if (accountIsLocked()) {
+      e.target.checked = userProfile?.preferences?.notifications ?? true;
+      showToast('Conta restrita: preferências bloqueadas', 'error');
+      return;
+    }
     try {
       await db.collection('users').doc(currentUser.uid).update({
         'preferences.notifications': e.target.checked
@@ -720,13 +739,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('prefPrivate').addEventListener('change', async (e) => {
+    if (accountIsLocked()) {
+      e.target.checked = userProfile?.preferences?.privateMode ?? false;
+      showToast('Conta restrita: preferências bloqueadas', 'error');
+      return;
+    }
     try {
       await db.collection('users').doc(currentUser.uid).update({
         'preferences.privateMode': e.target.checked
       });
       if (!userProfile.preferences) userProfile.preferences = {};
       userProfile.preferences.privateMode = e.target.checked;
-      updateProfileUI(); // Atualiza a UI imediatamente (esconde/mostra e-mail)
+      updateProfileUI();
       showToast(e.target.checked ? 'Modo privado ativado' : 'Modo privado desativado', 'info');
     } catch (err) {
       console.error(err);
@@ -767,22 +791,79 @@ document.addEventListener('DOMContentLoaded', () => {
     return { blocked: false };
   }
 
-  async function enforceModeration(user, profile) {
-    // Admin nunca é bloqueado
-    if ((user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) return false;
+  /**
+   * Ban/castigo: usuário ENTRA no pós-login, mas não pode mexer na conta.
+   * Admin nunca fica restrito.
+   */
+  function applyAccountRestrictions(user, profile) {
+    const banner = document.getElementById('restrictionBanner');
+    const titleEl = document.getElementById('restrictionTitle');
+    const msgEl = document.getElementById('restrictionMessage');
+    const sections = document.getElementById('profileSections');
 
+    const isAdm = (user?.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
     const status = isUserPunished(profile);
-    if (!status.blocked) return false;
+    const restricted = status.blocked && !isAdm;
 
-    await auth.signOut();
-    if (status.type === 'ban') {
-      showToast(`Conta banida. ${status.reason}`, 'error');
-    } else {
-      const when = status.until ? status.until.toLocaleString('pt-BR') : 'em breve';
-      showToast(`Você está de castigo até ${when}. ${status.reason}`, 'error');
+    // Elementos que não pode usar quando restrito
+    const lockIds = [
+      'changeAvatarBtn',
+      'editNameBtn',
+      'saveNameBtn',
+      'prefNotifications',
+      'prefPrivate',
+      'avatarInput'
+    ];
+
+    lockIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (restricted) {
+        el.setAttribute('disabled', 'true');
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.4';
+      } else {
+        el.removeAttribute('disabled');
+        el.style.pointerEvents = '';
+        el.style.opacity = '';
+      }
+    });
+
+    if (banner) {
+      if (restricted) {
+        banner.classList.remove('hidden');
+        if (status.type === 'ban') {
+          if (titleEl) titleEl.textContent = 'Conta banida';
+          if (msgEl) {
+            msgEl.textContent = `${status.reason}. Você pode ver o perfil, mas não pode alterar nada na conta.`;
+          }
+          banner.classList.add('restriction-ban');
+          banner.classList.remove('restriction-timeout');
+        } else {
+          const when = status.until ? status.until.toLocaleString('pt-BR') : '—';
+          if (titleEl) titleEl.textContent = 'Conta em castigo';
+          if (msgEl) {
+            msgEl.textContent = `${status.reason}. Restrição até ${when}. Você pode ver o perfil, mas não pode alterar a conta.`;
+          }
+          banner.classList.add('restriction-timeout');
+          banner.classList.remove('restriction-ban');
+        }
+        if (sections) sections.classList.add('profile-locked');
+      } else {
+        banner.classList.add('hidden');
+        banner.classList.remove('restriction-ban', 'restriction-timeout');
+        if (sections) sections.classList.remove('profile-locked');
+      }
     }
-    return true;
+
+    return restricted;
   }
+
+  function accountIsLocked() {
+    if (isAdminUser()) return false;
+    return isUserPunished(userProfile).blocked;
+  }
+
 
   function updateAdminGate() {
     const gate = document.getElementById('adminGate');
