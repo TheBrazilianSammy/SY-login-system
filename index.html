@@ -268,9 +268,108 @@
           </div>
         </section>
 
+        <!-- Só aparece para o admin -->
+        <section class="profile-section admin-gate hidden" id="adminGate">
+          <h3><i class="fa-solid fa-shield-halved"></i> Administração</h3>
+          <div class="section-content">
+            <p class="admin-gate-text">Painel restrito ao administrador do sistema.</p>
+            <button type="button" class="btn-admin-open" id="openAdminPanel">
+              <i class="fa-solid fa-user-shield"></i> Abrir painel admin
+            </button>
+          </div>
+        </section>
+
       </div>
     </div>
   </main>
+
+  <!-- ==================== PAINEL ADMIN ==================== -->
+  <div id="adminModal" class="admin-modal hidden">
+    <div class="admin-modal-backdrop" id="adminBackdrop"></div>
+    <div class="admin-modal-content">
+      <div class="admin-modal-header">
+        <div>
+          <h2><i class="fa-solid fa-user-shield"></i> Painel Admin</h2>
+          <p class="admin-subtitle">Gerencie usuários, bans, castigos e tags</p>
+        </div>
+        <button type="button" class="terms-close" id="closeAdminPanel" aria-label="Fechar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="search" id="adminSearch" placeholder="Buscar por nome, e-mail ou tag...">
+        </div>
+        <button type="button" class="btn-admin-refresh" id="adminRefresh">
+          <i class="fa-solid fa-rotate"></i> Atualizar
+        </button>
+      </div>
+
+      <div class="admin-stats" id="adminStats">
+        <div class="admin-stat"><span id="statTotal">0</span><small>Usuários</small></div>
+        <div class="admin-stat"><span id="statBanned">0</span><small>Banidos</small></div>
+        <div class="admin-stat"><span id="statTimeout">0</span><small>Em castigo</small></div>
+        <div class="admin-stat"><span id="statTags">0</span><small>Com tags</small></div>
+      </div>
+
+      <div class="admin-user-list" id="adminUserList">
+        <p class="admin-empty">Carregando usuários...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de ação admin em um usuário -->
+  <div id="adminActionModal" class="admin-modal hidden">
+    <div class="admin-modal-backdrop" id="adminActionBackdrop"></div>
+    <div class="admin-modal-content admin-action-content">
+      <div class="admin-modal-header">
+        <div>
+          <h2 id="adminActionTitle">Gerenciar usuário</h2>
+          <p class="admin-subtitle" id="adminActionSubtitle">—</p>
+        </div>
+        <button type="button" class="terms-close" id="closeAdminAction" aria-label="Fechar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="admin-action-body">
+        <div class="admin-field">
+          <label>Tags (separe por vírgula)</label>
+          <input type="text" id="adminTagsInput" placeholder="ex: vip, suspeito, tester">
+        </div>
+        <div class="admin-field">
+          <label>Nota do admin (só você vê)</label>
+          <textarea id="adminNotesInput" rows="2" placeholder="Anotação interna..."></textarea>
+        </div>
+        <div class="admin-field">
+          <label>Motivo (ban / castigo)</label>
+          <input type="text" id="adminReasonInput" placeholder="Motivo da punição">
+        </div>
+        <div class="admin-field">
+          <label>Castigo até (data e hora)</label>
+          <input type="datetime-local" id="adminTimeoutInput">
+        </div>
+        <div class="admin-action-buttons">
+          <button type="button" class="btn-admin-save" id="adminSaveMeta">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar tags / nota
+          </button>
+          <button type="button" class="btn-admin-timeout" id="adminApplyTimeout">
+            <i class="fa-solid fa-clock"></i> Aplicar castigo
+          </button>
+          <button type="button" class="btn-admin-clear-timeout" id="adminClearTimeout">
+            <i class="fa-solid fa-clock-rotate-left"></i> Tirar castigo
+          </button>
+          <button type="button" class="btn-admin-ban" id="adminBanUser">
+            <i class="fa-solid fa-ban"></i> Banir
+          </button>
+          <button type="button" class="btn-admin-unban" id="adminUnbanUser">
+            <i class="fa-solid fa-check"></i> Desbanir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ==================== MODAL EDITOR DE FOTO ==================== -->
   <div id="photoEditorModal" class="photo-editor-modal hidden">
