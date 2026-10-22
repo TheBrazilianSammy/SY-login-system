@@ -181,7 +181,16 @@
         </button>
       </div>
 
-      <div class="profile-sections">
+      <!-- Aviso de ban / castigo (conta restrita, mas ainda logado) -->
+      <div id="restrictionBanner" class="restriction-banner hidden">
+        <div class="restriction-banner-icon"><i class="fa-solid fa-lock"></i></div>
+        <div class="restriction-banner-text">
+          <strong id="restrictionTitle">Conta restrita</strong>
+          <p id="restrictionMessage">Você pode ver o perfil, mas não pode alterar a conta.</p>
+        </div>
+      </div>
+
+      <div class="profile-sections" id="profileSections">
         
         <section class="profile-section">
           <h3><i class="fa-solid fa-user-gear"></i> Conta</h3>
