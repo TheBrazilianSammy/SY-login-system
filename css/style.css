@@ -1421,3 +1421,87 @@ body {
 .profile-locked .pref-row {
   opacity: 0.55;
 }
+
+/* =========================
+   VERIFICAÇÃO DE E-MAIL
+========================= */
+.verify-email-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(120, 53, 15, 0.25);
+}
+.verify-email-box.hidden { display: none !important; }
+.verify-email-text strong {
+  display: block;
+  color: #fde68a;
+  font-size: 0.92rem;
+  margin-bottom: 6px;
+}
+.verify-email-text p {
+  color: #fcd34d;
+  font-size: 0.84rem;
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+.verify-email-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn-verify-send,
+.btn-verify-check {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+}
+.btn-verify-send {
+  background: rgba(245, 158, 11, 0.35);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+.btn-verify-check {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.btn-verify-send:hover,
+.btn-verify-check:hover {
+  filter: brightness(1.1);
+}
+
+.linked-lock-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 18px 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(2, 6, 23, 0.55);
+  color: var(--text-secondary);
+}
+.linked-lock-overlay.hidden { display: none !important; }
+.linked-lock-overlay i {
+  font-size: 1.4rem;
+  color: #fbbf24;
+}
+.linked-lock-overlay p {
+  font-size: 0.88rem;
+  margin: 0;
+  max-width: 280px;
+}
+.profile-section.linked-locked .linked-accounts-grid {
+  opacity: 0.35;
+  pointer-events: none;
+  filter: grayscale(0.4);
+}
