@@ -204,21 +204,45 @@
               <span class="info-value" id="infoEmail">usuario@email.com</span>
             </div>
             <div class="info-row">
+              <span class="info-label">Verificação</span>
+              <span class="info-value" id="infoVerified">—</span>
+            </div>
+            <div class="info-row">
               <span class="info-label">Membro desde</span>
               <span class="info-value" id="infoMemberSince">—</span>
             </div>
           </div>
+
+          <div id="verifyEmailBox" class="verify-email-box hidden">
+            <div class="verify-email-text">
+              <strong><i class="fa-solid fa-envelope-circle-check"></i> Verifique seu e-mail</strong>
+              <p>Confirme o e-mail da conta para liberar as <strong>contas vinculadas</strong>.</p>
+            </div>
+            <div class="verify-email-actions">
+              <button type="button" class="btn-verify-send" id="sendVerifyEmailBtn">
+                <i class="fa-solid fa-paper-plane"></i> Enviar e-mail
+              </button>
+              <button type="button" class="btn-verify-check" id="checkVerifyEmailBtn">
+                <i class="fa-solid fa-rotate"></i> Já verifiquei
+              </button>
+            </div>
+          </div>
         </section>
 
-        <section class="profile-section">
+        <section class="profile-section" id="linkedAccountsSection">
           <h3>
-            <i class="fa-solid fa-link"></i> 
+            <i class="fa-solid fa-link"></i>
             Contas Vinculadas
-            <span class="badge-soon">Em breve</span>
+            <span class="badge-soon" id="linkedBadge">Em breve</span>
           </h3>
           <p class="section-desc">Junte várias contas em uma só. Faça login com Google, Discord e outros serviços na mesma conta.</p>
-          
-          <div class="linked-accounts-grid">
+
+          <div id="linkedLockOverlay" class="linked-lock-overlay">
+            <i class="fa-solid fa-lock"></i>
+            <p>Verifique seu e-mail para ter acesso às contas vinculadas.</p>
+          </div>
+
+          <div class="linked-accounts-grid" id="linkedAccountsGrid">
             <div class="linked-account" data-provider="google">
               <div class="linked-icon google"><i class="fa-brands fa-google"></i></div>
               <div class="linked-info">
@@ -256,6 +280,7 @@
             </div>
           </div>
         </section>
+
 
         <section class="profile-section">
           <h3><i class="fa-solid fa-sliders"></i> Preferências</h3>
