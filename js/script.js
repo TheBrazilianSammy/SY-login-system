@@ -201,12 +201,58 @@ document.addEventListener('DOMContentLoaded', () => {
       googleStatus.textContent = isGoogle ? 'Vinculado' : 'Não vinculado';
     }
 
+    // Verificação de e-mail + lock de contas vinculadas
+    updateEmailVerificationUI();
+
     // Botão admin (só e-mail autorizado)
     updateAdminGate();
 
     // Reaplica restrições de ban/castigo na UI
     if (currentUser) applyAccountRestrictions(currentUser, userProfile);
   }
+
+  function isEmailVerified() {
+    if (!currentUser) return false;
+    if (currentUser.emailVerified) return true;
+    // Conta Google já é considerada verificada
+    return currentUser.providerData.some(p => p.providerId === 'google.com');
+  }
+
+  function updateEmailVerificationUI() {
+    const verifiedEl = document.getElementById('infoVerified');
+    const box = document.getElementById('verifyEmailBox');
+    const lock = document.getElementById('linkedLockOverlay');
+    const section = document.getElementById('linkedAccountsSection');
+    const badge = document.getElementById('linkedBadge');
+    const verified = isEmailVerified();
+
+    if (verifiedEl) {
+      verifiedEl.textContent = verified ? 'E-mail verificado' : 'Não verificado';
+      verifiedEl.style.color = verified ? '#4ade80' : '#fbbf24';
+    }
+
+    if (box) {
+      // Não mostra envio de verificação se já verificado ou conta restrita (ban/castigo)
+      const locked = typeof accountIsLocked === 'function' ? accountIsLocked() : false;
+      if (verified || locked) box.classList.add('hidden');
+      else box.classList.remove('hidden');
+    }
+
+    if (lock) {
+      if (verified) lock.classList.add('hidden');
+      else lock.classList.remove('hidden');
+    }
+
+    if (section) {
+      if (verified) section.classList.remove('linked-locked');
+      else section.classList.add('linked-locked');
+    }
+
+    if (badge) {
+      badge.textContent = verified ? 'Em breve' : 'Verifique o e-mail';
+    }
+  }
+
 
   // =========================
   // MOSTRAR / ESCONDER TELAS
@@ -718,6 +764,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+  // =========================
+  // VERIFICAÇÃO DE E-MAIL
+  // =========================
+  document.getElementById('sendVerifyEmailBtn')?.addEventListener('click', async () => {
+    if (!currentUser) return;
+    if (accountIsLocked()) {
+      showToast('Conta restrita', 'error');
+      return;
+    }
+    if (isEmailVerified()) {
+      showToast('E-mail já verificado', 'info');
+      updateEmailVerificationUI();
+      return;
+    }
+    const btn = document.getElementById('sendVerifyEmailBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+    try {
+      await currentUser.sendEmailVerification();
+      showToast('E-mail de verificação enviado! Confira a caixa de entrada.', 'success');
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/too-many-requests') {
+        showToast('Muitas tentativas. Aguarde um pouco e tente de novo.', 'error');
+      } else {
+        showToast('Erro ao enviar e-mail de verificação', 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  });
+
+  document.getElementById('checkVerifyEmailBtn')?.addEventListener('click', async () => {
+    if (!currentUser) return;
+    const btn = document.getElementById('checkVerifyEmailBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checando...';
+    try {
+      await currentUser.reload();
+      currentUser = auth.currentUser;
+      updateEmailVerificationUI();
+      if (isEmailVerified()) {
+        showToast('E-mail verificado! Contas vinculadas liberadas.', 'success');
+      } else {
+        showToast('Ainda não verificado. Abra o link do e-mail e tente de novo.', 'info');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao verificar status', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  });
 
   // =========================
   // PREFERÊNCIAS
