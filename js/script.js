@@ -14,8 +14,21 @@ const firebaseConfig = {
 // Inicializa Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+// Mantém sessão no celular durante redirect do Google
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 const db = firebase.firestore();
 const storage = firebase.storage();
+
+// ID do cliente OAuth Web (Firebase → Authentication → Sign-in method → Google → ID do cliente da Web)
+// Também pode ser salvo no campo da tela de Contas vinculadas
+function getGoogleWebClientId() {
+  return localStorage.getItem('GOOGLE_WEB_CLIENT_ID') || '';
+}
+
+function setGoogleWebClientId(id) {
+  if (id && id.trim()) localStorage.setItem('GOOGLE_WEB_CLIENT_ID', id.trim());
+}
+
 
 // =========================
 // APP
@@ -194,12 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('prefNotifications').checked = userProfile.preferences?.notifications ?? true;
     document.getElementById('prefPrivate').checked = isPrivate;
 
-    // Status Google
-    const isGoogle = currentUser.providerData.some(p => p.providerId === 'google.com');
-    const googleStatus = document.getElementById('googleStatus');
-    if (googleStatus) {
-      googleStatus.textContent = isGoogle ? 'Vinculado' : 'Não vinculado';
-    }
+    // Status das contas vinculadas
+    updateLinkedAccountsUI();
 
     // Verificação de e-mail + lock de contas vinculadas
     updateEmailVerificationUI();
@@ -217,6 +226,435 @@ document.addEventListener('DOMContentLoaded', () => {
     // Conta Google já é considerada verificada
     return currentUser.providerData.some(p => p.providerId === 'google.com');
   }
+
+  function getLinkedProviderIds() {
+    if (!currentUser) return [];
+    return (currentUser.providerData || []).map(p => p.providerId);
+  }
+
+  function createAuthProvider(providerId) {
+    if (providerId === 'google.com') return new firebase.auth.GoogleAuthProvider();
+    if (providerId === 'github.com') return new firebase.auth.GithubAuthProvider();
+    if (providerId === 'facebook.com') return new firebase.auth.FacebookAuthProvider();
+    if (providerId === 'microsoft.com') return new firebase.auth.OAuthProvider('microsoft.com');
+    return null;
+  }
+
+  function providerLabel(providerId) {
+    const map = {
+      'google.com': 'Google',
+      'github.com': 'GitHub',
+      'microsoft.com': 'Microsoft',
+      'facebook.com': 'Facebook',
+      'password': 'E-mail e senha'
+    };
+    return map[providerId] || providerId;
+  }
+
+  function updateLinkedAccountsUI() {
+    if (!currentUser) return;
+    const linked = getLinkedProviderIds();
+    const canManage = isEmailVerified() && !accountIsLocked();
+
+    document.querySelectorAll('[data-status-for]').forEach(el => {
+      const id = el.getAttribute('data-status-for');
+      const isLinked = linked.includes(id);
+      el.textContent = isLinked ? 'Vinculado' : 'Não vinculado';
+      el.style.color = isLinked ? '#4ade80' : '';
+    });
+
+    document.querySelectorAll('[data-link-provider]').forEach(btn => {
+      const id = btn.getAttribute('data-link-provider');
+      const isLinked = linked.includes(id);
+      btn.disabled = !canManage;
+      btn.classList.toggle('is-linked', isLinked);
+      btn.textContent = isLinked ? 'Desvincular' : 'Vincular';
+      btn.title = !canManage
+        ? (!isEmailVerified() ? 'Verifique o e-mail primeiro' : 'Conta restrita')
+        : (isLinked ? 'Remover vínculo' : 'Vincular conta');
+    });
+
+  }
+
+  async function syncLinkedProvidersToFirestore() {
+    if (!currentUser) return;
+    const linkedProviders = getLinkedProviderIds();
+    try {
+      await db.collection('users').doc(currentUser.uid).set({ linkedProviders }, { merge: true });
+      if (userProfile) userProfile.linkedProviders = linkedProviders;
+    } catch (e) {
+      console.warn('Falha ao salvar linkedProviders', e);
+    }
+  }
+
+  function explainLinkError(err, providerId) {
+    const name = providerLabel(providerId);
+    const code = err?.code || '';
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return null;
+    if (code === 'auth/credential-already-in-use') return 'Essa conta já está vinculada a outro usuário';
+    if (code === 'auth/email-already-in-use') return 'Este e-mail já está em uso por outra conta';
+    if (code === 'auth/provider-already-linked') return `${name} já está vinculado`;
+    if (code === 'auth/operation-not-allowed') {
+      return `${name} não está ativado no Firebase. Vá em Authentication → Sign-in method e ative.`;
+    }
+    if (code === 'auth/requires-recent-login') {
+      return 'Por segurança, saia e entre de novo antes de vincular';
+    }
+    if (code === 'auth/unauthorized-domain') {
+      return 'Domínio não autorizado no Firebase (Authorized domains). Adicione localhost e seu domínio.';
+    }
+    if (code === 'auth/popup-blocked') {
+      return 'Popup bloqueado. Permita popups ou tente de novo.';
+    }
+    if (code === 'auth/account-exists-with-different-credential') {
+      return 'Já existe uma conta com esse e-mail usando outro método de login';
+    }
+    if (err?.message) {
+      const short = String(err.message).split('(')[0].trim();
+      return `Erro ao vincular ${name}: ${short}`;
+    }
+    return `Erro ao vincular ${name}${code ? ` (${code})` : ''}`;
+  }
+
+  async function finishLinkSuccess(providerId) {
+    currentUser = auth.currentUser;
+    await syncLinkedProvidersToFirestore();
+    updateLinkedAccountsUI();
+    updateEmailVerificationUI();
+    showToast(`${providerLabel(providerId)} vinculado!`, 'success');
+  }
+
+  function loadGoogleGis() {
+    return new Promise((resolve, reject) => {
+      if (window.google?.accounts?.oauth2) return resolve();
+      const existing = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+      if (existing) {
+        let n = 0;
+        const t = setInterval(() => {
+          if (window.google?.accounts?.oauth2) {
+            clearInterval(t);
+            resolve();
+          } else if (++n > 40) {
+            clearInterval(t);
+            reject(new Error('Google GIS não carregou'));
+          }
+        }, 100);
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Falha ao carregar Google GIS'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function linkGoogleViaGis() {
+    let clientId = getGoogleWebClientId();
+    if (!clientId) {
+      const typed = window.prompt(
+        'Cole o ID do cliente Web do Google (Firebase → Authentication → Google → ID do cliente da Web):'
+      );
+      if (!typed) {
+        showToast('ID do cliente Google necessário para vincular no celular', 'error');
+        return;
+      }
+      setGoogleWebClientId(typed);
+      clientId = typed.trim();
+    }
+
+    showToast('Abrindo Google...', 'info');
+    try {
+      await loadGoogleGis();
+    } catch (e) {
+      showToast('Não foi possível carregar o Google. Verifique a internet.', 'error');
+      return;
+    }
+
+    await new Promise((resolve) => {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'openid email profile',
+        prompt: 'select_account',
+        callback: async (tokenResponse) => {
+          try {
+            if (tokenResponse.error) {
+              localStorage.setItem('lastLinkError', JSON.stringify({
+                code: tokenResponse.error,
+                message: tokenResponse.error_description || tokenResponse.error,
+                at: Date.now(),
+                providerId: 'google.com'
+              }));
+              updateLinkedAccountsUI();
+              showToast('Google: ' + (tokenResponse.error_description || tokenResponse.error), 'error');
+              resolve();
+              return;
+            }
+            if (!auth.currentUser) {
+              showToast('Sessão expirada. Entre de novo.', 'error');
+              resolve();
+              return;
+            }
+            const credential = firebase.auth.GoogleAuthProvider.credential(
+              null,
+              tokenResponse.access_token
+            );
+            await auth.currentUser.linkWithCredential(credential);
+            currentUser = auth.currentUser;
+            try { await currentUser.reload(); } catch (_) {}
+            currentUser = auth.currentUser;
+            await syncLinkedProvidersToFirestore();
+            updateLinkedAccountsUI();
+            updateEmailVerificationUI();
+            localStorage.removeItem('lastLinkError');
+            showToast('Google vinculado!', 'success');
+          } catch (err) {
+            console.error('linkWithCredential', err);
+            localStorage.setItem('lastLinkError', JSON.stringify({
+              code: err.code || '',
+              message: err.message || String(err),
+              at: Date.now(),
+              providerId: 'google.com'
+            }));
+            updateLinkedAccountsUI();
+            if (err.code === 'auth/credential-already-in-use') {
+              showToast('Essa conta Google já está em outro usuário do Firebase.', 'error');
+            } else if (err.code === 'auth/provider-already-linked') {
+              showToast('Google já está vinculado', 'info');
+              updateLinkedAccountsUI();
+            } else if (err.code === 'auth/requires-recent-login') {
+              showToast('Sai e entra de novo, depois tente vincular.', 'error');
+            } else {
+              showToast((err.code || 'erro') + ': ' + (err.message || '').split('(')[0], 'error');
+            }
+          }
+          resolve();
+        },
+      });
+      client.requestAccessToken();
+    });
+  }
+
+  async function linkProvider(providerId) {
+    if (!currentUser || !auth.currentUser) {
+      showToast('Você precisa estar logado', 'error');
+      return;
+    }
+    if (accountIsLocked()) {
+      showToast('Conta restrita', 'error');
+      return;
+    }
+    if (!isEmailVerified()) {
+      showToast('Verifique seu e-mail primeiro', 'error');
+      return;
+    }
+
+    if (providerId === 'google.com') {
+      await linkGoogleViaGis();
+      return;
+    }
+
+    const provider = createAuthProvider(providerId);
+    if (!provider) {
+      showToast('Provedor não suportado', 'error');
+      return;
+    }
+    if (provider.setCustomParameters) {
+      provider.setCustomParameters({ prompt: 'select_account' });
+    }
+
+    const name = providerLabel(providerId);
+    showToast(`Vinculando ${name}...`, 'info');
+    sessionStorage.setItem('pendingLinkProvider', providerId);
+
+    // 1) Popup
+    try {
+      const result = await auth.currentUser.linkWithPopup(provider);
+      sessionStorage.removeItem('pendingLinkProvider');
+      currentUser = result.user || auth.currentUser;
+      try { await currentUser.reload(); } catch (_) {}
+      currentUser = auth.currentUser;
+      await syncLinkedProvidersToFirestore();
+      updateLinkedAccountsUI();
+      updateEmailVerificationUI();
+      showToast(`${name} vinculado!`, 'success');
+      return;
+    } catch (err) {
+      console.error('linkWithPopup', err);
+      localStorage.setItem('lastLinkError', JSON.stringify({
+        code: err.code || '',
+        message: err.message || String(err),
+        at: Date.now(),
+        providerId
+      }));
+
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        sessionStorage.removeItem('pendingLinkProvider');
+        return;
+      }
+      if (err.code === 'auth/provider-already-linked') {
+        sessionStorage.removeItem('pendingLinkProvider');
+        updateLinkedAccountsUI();
+        showToast(`${name} já está vinculado`, 'info');
+        return;
+      }
+      if (err.code === 'auth/credential-already-in-use') {
+        sessionStorage.removeItem('pendingLinkProvider');
+        showToast(`Essa conta ${name} já está em outro usuário do Firebase.`, 'error');
+        return;
+      }
+      if (err.code === 'auth/requires-recent-login') {
+        sessionStorage.removeItem('pendingLinkProvider');
+        showToast('Sai e entra de novo, depois tente vincular.', 'error');
+        return;
+      }
+      if (err.code === 'auth/operation-not-allowed') {
+        sessionStorage.removeItem('pendingLinkProvider');
+        showToast(`${name} não está ativado no Firebase (Sign-in method).`, 'error');
+        return;
+      }
+
+      // 2) Redirect (melhor no computador / GitHub Pages HTTPS)
+      const canRedirect =
+        err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/operation-not-supported-in-this-environment' ||
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (canRedirect) {
+        try {
+          showToast('Abrindo em tela cheia... Se falhar no iPhone, tente no computador.', 'info');
+          await auth.currentUser.linkWithRedirect(provider);
+          return;
+        } catch (err2) {
+          console.error('linkWithRedirect', err2);
+          sessionStorage.removeItem('pendingLinkProvider');
+          localStorage.setItem('lastLinkError', JSON.stringify({
+            code: err2.code || '',
+            message: err2.message || String(err2),
+            at: Date.now(),
+            providerId
+          }));
+          showToast(
+            `${name}: no iPhone costuma falhar. Abra o site no computador (Chrome) e vincule lá.`,
+            'error'
+          );
+          return;
+        }
+      }
+
+      sessionStorage.removeItem('pendingLinkProvider');
+      showToast((err.code || 'erro') + ': ' + (err.message || 'falha').split('(')[0], 'error');
+    }
+  }
+
+  // Resultado de linkWithRedirect (volta da tela do Google etc.)
+  let redirectLinkHandled = false;
+  async function handleLinkRedirectResult() {
+    if (redirectLinkHandled) return;
+    redirectLinkHandled = true;
+
+    const pending = sessionStorage.getItem('pendingLinkProvider');
+    try {
+      const result = await auth.getRedirectResult();
+      sessionStorage.removeItem('pendingLinkProvider');
+
+      // Garante usuário atual
+      if (auth.currentUser) {
+        currentUser = auth.currentUser;
+        try { await currentUser.reload(); } catch (_) {}
+        currentUser = auth.currentUser;
+      } else if (result && result.user) {
+        currentUser = result.user;
+      }
+
+      if (pending && currentUser) {
+        const linked = (currentUser.providerData || []).some(p => p.providerId === pending);
+        await syncLinkedProvidersToFirestore();
+        updateLinkedAccountsUI();
+        updateEmailVerificationUI();
+        if (linked) {
+          showToast(`${providerLabel(pending)} vinculado!`, 'success');
+        } else if (result && result.user) {
+          // Redirect voltou, mas provider não apareceu
+          showToast(
+            `O Google autorizou, mas o vínculo não ficou. Tente de novo no navegador (Safari/Chrome), não no app embutido.`,
+            'error'
+          );
+        } else {
+          showToast(
+            `Não foi possível concluir a vinculação de ${providerLabel(pending)}. Tente novamente.`,
+            'error'
+          );
+        }
+        return;
+      }
+
+      if (result && result.user) {
+        await syncLinkedProvidersToFirestore();
+        updateLinkedAccountsUI();
+        updateEmailVerificationUI();
+      }
+    } catch (err) {
+      console.error('getRedirectResult', err);
+      sessionStorage.removeItem('pendingLinkProvider');
+      if (!pending) return;
+
+      if (err.code === 'auth/credential-already-in-use') {
+        showToast(
+          'Essa conta Google já está ligada a outro usuário no Firebase. Em Authentication → Users, confira se existe outro cadastro com o mesmo e-mail.',
+          'error'
+        );
+        return;
+      }
+      if (err.code === 'auth/requires-recent-login') {
+        showToast('Por segurança, saia e entre de novo e tente vincular em seguida.', 'error');
+        return;
+      }
+      const msg = explainLinkError(err, pending);
+      if (msg) showToast(msg, 'error');
+    }
+  }
+
+  // Processa o retorno do redirect o quanto antes
+  handleLinkRedirectResult();
+
+  async function unlinkProvider(providerId) {
+    if (!currentUser) return;
+    if (accountIsLocked()) {
+      showToast('Conta restrita: não é possível desvincular', 'error');
+      return;
+    }
+    if (!isEmailVerified()) {
+      showToast('Verifique seu e-mail antes de gerenciar vínculos', 'error');
+      return;
+    }
+
+    const linked = getLinkedProviderIds();
+    // Não deixar sem nenhum método de login
+    if (linked.length <= 1) {
+      showToast('Você precisa manter pelo menos um método de login', 'error');
+      return;
+    }
+
+    if (!confirm(`Desvincular ${providerLabel(providerId)} desta conta?`)) return;
+
+    try {
+      await currentUser.unlink(providerId);
+      currentUser = auth.currentUser;
+      await syncLinkedProvidersToFirestore();
+      updateLinkedAccountsUI();
+      showToast(`${providerLabel(providerId)} desvinculado`, 'success');
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/requires-recent-login') {
+        showToast('Por segurança, saia e entre de novo antes de desvincular', 'error');
+        return;
+      }
+      showToast(`Erro ao desvincular ${providerLabel(providerId)}`, 'error');
+    }
+  }
+
 
   function updateEmailVerificationUI() {
     const verifiedEl = document.getElementById('infoVerified');
@@ -249,8 +687,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (badge) {
-      badge.textContent = verified ? 'Em breve' : 'Verifique o e-mail';
+      badge.textContent = verified ? 'Ativo' : 'Verifique o e-mail';
     }
+
+    // Atualiza botões Vincular/Desvincular conforme verificação
+    updateLinkedAccountsUI();
   }
 
 
@@ -764,6 +1205,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+  // =========================
+  // VINCULAR / DESVINCULAR CONTAS
+  // =========================
+  document.getElementById('linkedAccountsGrid')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-link-provider]');
+    if (!btn || btn.disabled) return;
+    const providerId = btn.getAttribute('data-link-provider');
+    if (!providerId) return;
+
+    const linked = getLinkedProviderIds();
+    if (linked.includes(providerId)) {
+      await unlinkProvider(providerId);
+    } else {
+      await linkProvider(providerId);
+    }
+  });
 
   // =========================
   // VERIFICAÇÃO DE E-MAIL
