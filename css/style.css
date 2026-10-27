@@ -841,6 +841,19 @@ body {
   cursor: not-allowed;
 }
 
+.btn-link.is-linked {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+.btn-link.is-linked:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.linked-account.coming-soon-link {
+  opacity: 0.55;
+}
+
 /* Preferências */
 .pref-row {
   display: flex;
@@ -1505,3 +1518,6 @@ body {
   pointer-events: none;
   filter: grayscale(0.4);
 }
+
+
+
