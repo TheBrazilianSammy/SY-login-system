@@ -235,7 +235,7 @@
             Contas Vinculadas
             <span class="badge-soon" id="linkedBadge">Em breve</span>
           </h3>
-          <p class="section-desc">Junte várias contas em uma só. Faça login com Google, Discord e outros serviços na mesma conta.</p>
+          <p class="section-desc">Junte várias contas em uma só. Google e GitHub disponíveis; Microsoft, Facebook e Discord em breve.</p>
 
           <div id="linkedLockOverlay" class="linked-lock-overlay">
             <i class="fa-solid fa-lock"></i>
@@ -243,42 +243,52 @@
           </div>
 
           <div class="linked-accounts-grid" id="linkedAccountsGrid">
-            <div class="linked-account" data-provider="google">
+            <div class="linked-account" data-provider="google.com">
               <div class="linked-icon google"><i class="fa-brands fa-google"></i></div>
               <div class="linked-info">
                 <span class="linked-name">Google</span>
-                <span class="linked-status" id="googleStatus">Não vinculado</span>
+                <span class="linked-status" data-status-for="google.com">Não vinculado</span>
               </div>
-              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+              <button type="button" class="btn-link" data-link-provider="google.com">Vincular</button>
             </div>
 
-            <div class="linked-account" data-provider="discord">
-              <div class="linked-icon discord"><i class="fa-brands fa-discord"></i></div>
-              <div class="linked-info">
-                <span class="linked-name">Discord</span>
-                <span class="linked-status">Não vinculado</span>
-              </div>
-              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
-            </div>
-
-            <div class="linked-account" data-provider="github">
+            <div class="linked-account" data-provider="github.com">
               <div class="linked-icon github"><i class="fa-brands fa-github"></i></div>
               <div class="linked-info">
                 <span class="linked-name">GitHub</span>
-                <span class="linked-status">Não vinculado</span>
+                <span class="linked-status" data-status-for="github.com">Não vinculado</span>
               </div>
-              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+              <button type="button" class="btn-link" data-link-provider="github.com">Vincular</button>
             </div>
 
-            <div class="linked-account" data-provider="microsoft">
+            <div class="linked-account is-disabled" data-provider="microsoft.com">
               <div class="linked-icon microsoft"><i class="fa-brands fa-microsoft"></i></div>
               <div class="linked-info">
                 <span class="linked-name">Microsoft</span>
-                <span class="linked-status">Não vinculado</span>
+                <span class="linked-status">Em breve</span>
               </div>
-              <button type="button" class="btn-link" disabled title="Disponível em breve">Vincular</button>
+              <button type="button" class="btn-link" disabled>Em breve</button>
+            </div>
+
+            <div class="linked-account is-disabled" data-provider="facebook.com">
+              <div class="linked-icon facebook"><i class="fa-brands fa-facebook-f"></i></div>
+              <div class="linked-info">
+                <span class="linked-name">Facebook</span>
+                <span class="linked-status">Em breve</span>
+              </div>
+              <button type="button" class="btn-link" disabled>Em breve</button>
+            </div>
+
+            <div class="linked-account coming-soon-link" data-provider="discord.com">
+              <div class="linked-icon discord"><i class="fa-brands fa-discord"></i></div>
+              <div class="linked-info">
+                <span class="linked-name">Discord</span>
+                <span class="linked-status">Em breve</span>
+              </div>
+              <button type="button" class="btn-link" disabled title="Discord ainda não está disponível">Em breve</button>
             </div>
           </div>
+
         </section>
 
 
@@ -604,6 +614,7 @@
   </script>
 
   <!-- Firebase SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
